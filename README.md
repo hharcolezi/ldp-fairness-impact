@@ -3,13 +3,11 @@ Repository for the paper: *Héber H. Arcolezi, Karima Makhlouf, and Catuscia Pal
 
 If our codes and work are useful to you, we would appreciate a reference to:
 ```
-@misc{arcolezi2023local,
-    title={(Local) Differential Privacy has NO Disparate Impact on Fairness},
-    author={Héber H. Arcolezi and Karima Makhlouf and Catuscia Palamidessi},
-    year={2023},
-    eprint={2304.12845},
-    archivePrefix={arXiv},
-    primaryClass={cs.LG}
+@article{arcolezi2023local,
+  title={(Local) Differential Privacy has NO Disparate Impact on Fairness},
+  author={Arcolezi, H{\'e}ber H and Makhlouf, Karima and Palamidessi, Catuscia},
+  journal={arXiv preprint arXiv:2304.12845},
+  year={2023}
 }
 ```
 
@@ -34,7 +32,7 @@ We are slowly cleaning/generalizing the codes + documentation.
 
 ## Acknowledgements
 - We use the LDP protocols implemented in our [multi-freq-ldpy](https://github.com/hharcolezi/multi-freq-ldpy) library.
-- We use the `reconstructed Adult` and `ACSCoverage` datasets from the [folktables](https://github.com/socialfoundations/folktables) library.
+- We use the reconstructed Adult and ACSCoverage datasets from the [folktables](https://github.com/socialfoundations/folktables) library.
 - We use the [LSAC](https://eric.ed.gov/?id=ED469370) dataset. 
 
 ## Contact
