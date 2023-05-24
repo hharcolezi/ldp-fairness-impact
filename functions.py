@@ -1,6 +1,6 @@
 from sklearn.metrics import accuracy_score, recall_score
 import numpy as np
-
+import xxhash
 
 def fairness_metrics(df_fm, protected_attribute, target):
     
@@ -58,4 +58,49 @@ def fairness_metrics(df_fm, protected_attribute, target):
     fair_met["OAD"] = OAD
     
     return fair_met    
+
+
+
+def IVE_LH(val_seed, k, epsilon, optimal=True):
+    """
+    Indicator-Vector-Encoding (IVE) for Local Hashing (LH) Mechanisms.
+    """
+    
+    g=2 # BLH parameter
+    if optimal:
+        g = int(np.round(np.exp(epsilon))) + 1 # OLH parameter
+    
+    ive_lh = np.zeros(k)
+
+    for v in range(k):
+        if val_seed[0] == (xxhash.xxh32(str(v), seed=val_seed[1]).intdigest() % g):
+            ive_lh[v] = 1
+    
+    return ive_lh    
+    
+def IVE_SS(ss, k):
+    """
+    Indicator-Vector-Encoding (IVE) for Subset Selection (SS) Mechanism.
+    """
+    
+    ive_ss = np.zeros(k)
+    ive_ss[ss] = 1
+    
+    return ive_ss    
+    
+def IVE_THE(hist, k, thresh):
+    """
+    Indicator-Vector-Encoding (IVE) for Thresholding with Histogram Encoding (THE) Mechanism.
+    """
+    
+    ss_the = np.where(hist > thresh)[0]
+    
+    ive_the = np.zeros(k)
+    
+    if len(ss_the) > 0:
+        ive_the[ss_the] = 1
+    
+    return ive_the    
+    
+    
     
