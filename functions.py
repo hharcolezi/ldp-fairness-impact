@@ -1,7 +1,95 @@
 from sklearn.metrics import accuracy_score, recall_score
 import numpy as np
 import xxhash
+import copy
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
+from numba import jit
 
+# multi-freq-ldpy import
+from multi_freq_ldpy.pure_frequency_oracles.GRR import GRR_Client
+from multi_freq_ldpy.pure_frequency_oracles.UE import UE_Client
+from multi_freq_ldpy.pure_frequency_oracles.LH import LH_Client
+from multi_freq_ldpy.pure_frequency_oracles.SS import SS_Client
+
+from scipy import optimize
+
+def find_tresh(tresh, epsilon):    
+    
+    return (2 * (np.exp(epsilon*tresh/2)) - 1) / (1 + (np.exp(epsilon*(tresh-1/2))) - 2*(np.exp(epsilon*tresh/2)))**2
+
+@jit(nopython=True)
+def HE_Client(input_data, k, epsilon):
+    
+    return np.eye(k)[input_data] + np.random.laplace(loc=0.0, scale=2/epsilon, size=k)
+
+
+def get_preprocessed_encoded_sets_with_ldp(df, target, test_size, seed, lst_sensitive_att, epsilon, split_strategy, lst_k, mechanism='GRR'):
+    
+    # Use original dataset
+    X = copy.deepcopy(df.drop(target, axis=1))
+    y = copy.deepcopy(df[target])
+
+    # Train test splitting
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=True, stratify=y, random_state=seed)
+    y_train.reset_index(inplace=True, drop=True)
+    y_test.reset_index(inplace=True, drop=True)
+
+    # One-Hot-Encoding + LDP randomization
+    lst_df_train = []
+    lst_df_test = []
+    for col in list(set(df.columns) - set([target])):
+
+        lst_col_name = [col+"_{}".format(val) for val in range(len(set(df[col])))]
+        k = len(set(df[col]))
+        OHE = np.eye(k)
+
+        if col in lst_sensitive_att: # LDP randomization
+            eps_att = epsilon / len(lst_sensitive_att) if split_strategy=='uniform' else epsilon * k / sum(lst_k.values())
+            
+            if mechanism == 'GRR':
+                df_ohe = pd.DataFrame([OHE[GRR_Client(val, k, eps_att)] for val in X_train[col]], columns=lst_col_name)
+                
+            elif mechanism == 'BLH':
+                df_ohe = pd.DataFrame([IVE_LH(LH_Client(val, eps_att, optimal=False), k, eps_att, optimal=False) for val in X_train[col]], columns=lst_col_name)
+            
+            elif mechanism == 'OLH':
+                df_ohe = pd.DataFrame([IVE_LH(LH_Client(val, eps_att, optimal=True), k, eps_att, optimal=True) for val in X_train[col]], columns=lst_col_name)
+            
+            elif mechanism == 'SUE':
+                df_ohe = pd.DataFrame(np.stack(X_train[col].apply(lambda x: UE_Client(x, k, eps_att, optimal=False))), columns=lst_col_name) 
+                
+            elif mechanism == 'OUE':
+                df_ohe = pd.DataFrame(np.stack(X_train[col].apply(lambda x: UE_Client(x, k, eps_att, optimal=True))), columns=lst_col_name)
+                
+            elif mechanism == 'SS':
+                df_ohe = pd.DataFrame([IVE_SS(SS_Client(val, k, eps_att), k) for val in X_train[col]], columns=lst_col_name)
+                
+            elif mechanism == 'THE':
+                res_tresh = optimize.minimize_scalar(find_tresh, bounds=[0,1], method='bounded', args=(eps_att))
+                tresh_att = res_tresh.x
+
+                df_ohe = pd.DataFrame([IVE_THE(HE_Client(val, k, eps_att), k, tresh_att) for val in X_train[col]], columns=lst_col_name)
+            
+            else:
+                raise ValueError("Mechanism unknown!")
+        else: # just one-hot-encoding
+            df_ohe = pd.DataFrame([OHE[val] for val in X_train[col]], columns=lst_col_name)
+
+        lst_df_train.append(df_ohe)
+
+        # test set is original, i.e., just one-hot-encoding
+        df_ohe_test = pd.DataFrame([OHE[val] for val in X_test[col]], columns=lst_col_name)
+        lst_df_test.append(df_ohe_test)
+
+    # concat one-hot-encoded train/test sets
+    X_train = pd.concat(lst_df_train, axis=1)
+    X_test = pd.concat(lst_df_test, axis=1)
+    
+    return X_train, X_test, y_train, y_test
+
+    
 def fairness_metrics(df_fm, protected_attribute, target):
     
     fair_met = {# Statistical Parity
@@ -101,6 +189,4 @@ def IVE_THE(hist, k, thresh):
         ive_the[ss_the] = 1
     
     return ive_the    
-    
-    
     

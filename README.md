@@ -1,5 +1,5 @@
 ## LDP Impact on Fairness
-Repository for the paper: *Héber H. Arcolezi, Karima Makhlouf, and Catuscia Palamidessi. "[(Local) Differential Privacy has NO Disparate Impact on Fairness](https://arxiv.org/abs/2304.12845)" arXiv preprint arXiv:2304.12845 (2023).*
+Repository for the paper: *Héber H. Arcolezi, Karima Makhlouf, and Catuscia Palamidessi. "[(Local) Differential Privacy has NO Disparate Impact on Fairness](https://arxiv.org/abs/2304.12845)" arXiv preprint arXiv:2304.12845 (2023).* Accepted at [DBSec 2023](http://www.dbsec2023.unimol.it/).
 
 If our codes and work are useful to you, we would appreciate a reference to:
 ```
@@ -24,8 +24,13 @@ Our codes were developed using Python 3 with mainly numpy, pandas, lightgbm, and
 This repository is organized/ordered in several Jupyter Notebook files as:
 - `0_Preprocess_Datasets.ipynb:` Notebook for pre-processing (cleaning, encoding) three original datasets (i.e., Adult, ACSCoverage, LSAC). The pre-processed datasets are saved in the `datasets` folder.
 - `1_BO_NonDP.ipynb:` Notebook for conducting the Bayesian Optimization (BO) to find the local optimal LGBM hyperparameters using original data (i.e., no LDP). Results are saved in CSV format in the `results` folder.
-- `2_Exp_XXX:` Notebooks for carrying out all experiments (repeated over `nb_seed=20` iterations) of the paper assuming the mechanism `XXX` (e.g., NonDP as the baseline, GRR, OUE, etc). Results are saved in CSV format in the corresponding `results` folder. 
-- `3_Final_Results.ipynb:` Notebook with codes to plot the final results illustrated in the paper.
+- `2_Exp_XXX:` Notebooks for carrying out all experiments (repeated over `nb_seed=20` iterations) of the paper assuming the mechanism `XXX` (e.g., NonDP as the baseline, GRR, OUE, etc). Results are saved in CSV and numpy formats in the corresponding `results` folder. The notebook `2_Exp_All_LDP` is generic and runs all LDP protocols. 
+- `3_Final_Results.ipynb:` Notebook with codes to plot the final results illustrated in the main paper.
+- `4_Appendix_Experiments.ipynb`: Notebook for carrying out the additional set of experiments (repeated over `nb_seed=20` iterations) with all LDP protocols. Results are also saved in CSV format in the `results` folder. 
+- `4_Appendix_Results.ipynb`: Notebook with codes to plot the final results illustrated in the appendix of the full paper (in arXiv).
+
+
+Some functions used in the Jupyter Notebooks are imported from `functions.py`.
 
 ## To Do
 We are slowly cleaning/generalizing the codes + documentation.
