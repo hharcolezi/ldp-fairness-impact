@@ -1,13 +1,17 @@
 ## LDP Impact on Fairness
-Repository for the paper: *Héber H. Arcolezi, Karima Makhlouf, and Catuscia Palamidessi. "[(Local) Differential Privacy has NO Disparate Impact on Fairness](https://arxiv.org/abs/2304.12845)" arXiv preprint arXiv:2304.12845 (2023).* Accepted at [DBSec 2023](http://www.dbsec2023.unimol.it/).
+Repository for the paper: *Arcolezi, H.H., Makhlouf, K., Palamidessi, C. (2023). (Local) Differential Privacy has NO Disparate Impact on Fairness. In: Atluri, V., Ferrara, A.L. (eds) Data and Applications Security and Privacy XXXVII. DBSec 2023. Lecture Notes in Computer Science, vol 13942. Springer, Cham. https://doi.org/10.1007/978-3-031-37586-6_1*.
 
 If our codes and work are useful to you, we would appreciate a reference to:
 ```
-@article{arcolezi2023local,
-  title={(Local) Differential Privacy has NO Disparate Impact on Fairness},
-  author={Arcolezi, H{\'e}ber H and Makhlouf, Karima and Palamidessi, Catuscia},
-  journal={arXiv preprint arXiv:2304.12845},
-  year={2023}
+@incollection{Arcolezi2023,
+  doi = {10.1007/978-3-031-37586-6_1},
+  url = {https://doi.org/10.1007/978-3-031-37586-6_1},
+  year = {2023},
+  publisher = {Springer Nature Switzerland},
+  pages = {3--21},
+  author = {H{\'{e}}ber H. Arcolezi and Karima Makhlouf and Catuscia Palamidessi},
+  title = {(Local) Differential Privacy has {NO} Disparate Impact on~Fairness},
+  booktitle = {Data and Applications Security and Privacy {XXXVII}}
 }
 ```
 
