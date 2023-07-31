@@ -1,5 +1,6 @@
 from sklearn.metrics import accuracy_score, recall_score
 import numpy as np
+from sys import maxsize
 import xxhash
 import copy
 import pandas as pd
@@ -10,6 +11,7 @@ from numba import jit
 # multi-freq-ldpy import
 from multi_freq_ldpy.pure_frequency_oracles.GRR import GRR_Client
 from multi_freq_ldpy.pure_frequency_oracles.UE import UE_Client
+from multi_freq_ldpy.pure_frequency_oracles.HE import HE_Client
 from multi_freq_ldpy.pure_frequency_oracles.LH import LH_Client
 from multi_freq_ldpy.pure_frequency_oracles.SS import SS_Client
 
@@ -19,13 +21,61 @@ def find_tresh(tresh, epsilon):
     
     return (2 * (np.exp(epsilon*tresh/2)) - 1) / (1 + (np.exp(epsilon*(tresh-1/2))) - 2*(np.exp(epsilon*tresh/2)))**2
 
-@jit(nopython=True)
-def HE_Client(input_data, k, epsilon):
+def LH_Client_Fast(input_data, k, epsilon, optimal=True):
     
-    return np.eye(k)[input_data] + np.random.laplace(loc=0.0, scale=2/epsilon, size=k)
+    # Binary LH (BLH) parameter
+    g = 2
+    
+    # Optimal LH (OLH) parameter
+    if optimal:
+        g = int(round(np.exp(epsilon))) + 1
+    
+    # GRR parameters with reduced domain size g
+    p = np.exp(epsilon) / (np.exp(epsilon) + g - 1)
+    q = 1 / (np.exp(epsilon) + g - 1)
+    
+    # Generate random seed and hash the user's value
+    rnd_seed = np.random.randint(0, maxsize, dtype=np.int64)
+    hashed_input_data = (xxhash.xxh32(str(input_data), seed=rnd_seed).intdigest() % g)
+    
+    # LH perturbation function (i.e., GRR-based)
+    sanitized_value = hashed_input_data
+    rnd = np.random.random()
+    if rnd > p - q:
+        
+        sanitized_value = np.random.randint(0, g)
+        
+    return (sanitized_value, rnd_seed)
 
 
 def get_preprocessed_encoded_sets_with_ldp(df, target, test_size, seed, lst_sensitive_att, epsilon, split_strategy, lst_k, mechanism='GRR'):
+    def LH_Client_high_eps(input_data, k, epsilon, optimal=True):
+        """Backup function for OLH mechanism.
+        Due to high epsilon values, the new
+        domain size g is excessively high.
+        Multi-freq-ldpy fails with np.random.randint.
+        This new function uses np.random.uniform."""
+
+        # Binary LH (BLH) parameter
+        g = 2
+
+        # Optimal LH (OLH) parameter
+        if optimal:
+            g = int(round(np.exp(epsilon))) + 1
+
+        # Generate random seed and hash the user's value
+        rnd_seed = np.random.randint(0, maxsize, dtype=np.int64)
+        hashed_input_data = (xxhash.xxh32(str(input_data), seed=rnd_seed).intdigest() % g)
+
+        # LH perturbation function (i.e., GRR-based)
+        p = np.exp(epsilon) / (np.exp(epsilon) + g - 1)
+        if np.random.random() <= p:
+            sanitized_value = int(np.random.uniform() * g)
+            while sanitized_value == hashed_input_data:
+                sanitized_value = int(np.random.uniform() * g)        
+            return (sanitized_value, rnd_seed)
+
+        return (hashed_input_data, rnd_seed)
     
     # Use original dataset
     X = copy.deepcopy(df.drop(target, axis=1))
@@ -52,10 +102,13 @@ def get_preprocessed_encoded_sets_with_ldp(df, target, test_size, seed, lst_sens
                 df_ohe = pd.DataFrame([OHE[GRR_Client(val, k, eps_att)] for val in X_train[col]], columns=lst_col_name)
                 
             elif mechanism == 'BLH':
-                df_ohe = pd.DataFrame([IVE_LH(LH_Client(val, eps_att, optimal=False), k, eps_att, optimal=False) for val in X_train[col]], columns=lst_col_name)
+                df_ohe = pd.DataFrame([IVE_LH(LH_Client(val, k, eps_att, optimal=False), k, eps_att, optimal=False) for val in X_train[col]], columns=lst_col_name)
             
             elif mechanism == 'OLH':
-                df_ohe = pd.DataFrame([IVE_LH(LH_Client(val, eps_att, optimal=True), k, eps_att, optimal=True) for val in X_train[col]], columns=lst_col_name)
+                if eps_att <= 21:
+                    df_ohe = pd.DataFrame([IVE_LH(LH_Client_Fast(val, k, eps_att, optimal=True), k, eps_att, optimal=True) for val in X_train[col]], columns=lst_col_name)
+                else:
+                    df_ohe = pd.DataFrame([IVE_LH(LH_Client_high_eps(val, k, eps_att, optimal=True), k, eps_att, optimal=True) for val in X_train[col]], columns=lst_col_name)
             
             elif mechanism == 'SUE':
                 df_ohe = pd.DataFrame(np.stack(X_train[col].apply(lambda x: UE_Client(x, k, eps_att, optimal=False))), columns=lst_col_name) 
@@ -89,7 +142,7 @@ def get_preprocessed_encoded_sets_with_ldp(df, target, test_size, seed, lst_sens
     
     return X_train, X_test, y_train, y_test
 
-    
+   
 def fairness_metrics(df_fm, protected_attribute, target):
     
     fair_met = {# Statistical Parity
